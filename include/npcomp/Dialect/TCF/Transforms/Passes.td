@@ -17,7 +17,7 @@ def TCFShapeRefinement : Pass<"tcf-shape-refinement", "FuncOp"> {
 }
 
 def TCFInsertIdentity : Pass<"tcf-insert-identity", "FuncOp"> {
-  let summary = "Adds an indentity operation after every AddOp for example";
+  let summary = "Adds an identity operation after every AddOp for example";
   let constructor = "mlir::NPCOMP::tcf::createInsertIdentityPass()";
 }
 
