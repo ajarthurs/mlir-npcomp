@@ -21,6 +21,8 @@ std::unique_ptr<OperationPass<FuncOp>> createShapeRefinementPass();
 
 std::unique_ptr<OperationPass<FuncOp>> createInsertIdentityPass();
 
+std::unique_ptr<OperationPass<FuncOp>> createStripIdentityPass();
+
 } // namespace tcf
 
 /// Registers all TCF transformation passes.

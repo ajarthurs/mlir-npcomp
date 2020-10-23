@@ -22,9 +22,8 @@ def TCFInsertIdentity : Pass<"tcf-insert-identity", "FuncOp"> {
 }
 
 def TCFStripIdentity : Pass<"tcf-strip-identity", "FuncOp"> {
-  let summary = "Strips all identity operations";
-  let hasCanonicalizer = 1;
-  //let constructor = "mlir::NPCOMP::tcf::createStripIdentityPass()";
+  let summary = "Removes all identity operations";
+  let constructor = "mlir::NPCOMP::tcf::createStripIdentityPass()";
 }
 
 #endif // NPCOMP_TCF_PASSES
