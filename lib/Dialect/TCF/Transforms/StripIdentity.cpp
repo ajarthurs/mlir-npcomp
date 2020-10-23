@@ -36,7 +36,7 @@ class StripIdentityPass : public mlir::NPCOMP::tcf::TCFStripIdentityBase<StripId
     mlir::ConversionTarget target(getContext());
     target.addLegalDialect<mlir::NPCOMP::tcf::TCFDialect>();
     target.addLegalOp<mlir::FuncOp>();
-    target.addIllegalOp<mlir::NPCOMP::tcf::IdentityOp>();
+    //target.addIllegalOp<mlir::NPCOMP::tcf::IdentityOp>();
 
     // Apply the rewrite patterns.
     // NOTE(bryce): There are two ways of applying a list of RewritePatterns to a graph
