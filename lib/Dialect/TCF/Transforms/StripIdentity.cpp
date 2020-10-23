@@ -26,11 +26,10 @@ struct StripIdentityPattern : public mlir::OpRewritePattern<mlir::NPCOMP::tcf::I
 class StripIdentityPass : public mlir::NPCOMP::tcf::TCFStripIdentityBase<StripIdentityPass> {
   void runOnOperation() override {
     llvm::dbgs() << "StripIdentityPass.runOnOperation() start" << "\n";
-    StripIdentityPattern sip(&getContext());
 
     // Register rewrite patterns.
     mlir::OwningRewritePatternList patterns;
-    patterns.insert<StripIdentityPattern>(sip);
+    patterns.insert<StripIdentityPattern>(&getContext());
 
     // Restrict dialects and their components affected by this pass.
     mlir::ConversionTarget target(getContext());
