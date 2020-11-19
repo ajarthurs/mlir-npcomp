@@ -95,4 +95,23 @@ def TCF_MatmulOp : TCF_Op<"matmul"> {
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` functional-type(operands, results)";
 }
 
+def TCF_Conv2dOp : TCF_Op<"conv_2d"> {
+  let summary = "2-D convolution";
+  let description = [{
+    Performs 2-D convolution.
+
+    The tensors have dimensions:
+    - in: [H, W]
+    - filter: [KH, KW]
+    - result: [H, W]
+
+    If the `K` dimension mismatches between the operands, this op aborts the
+    program.
+  }];
+  let arguments = (ins 2DTensorOf<[F32]>:$in, 2DTensorOf<[F32]>:$filter);
+  let results = (outs 2DTensorOf<[F32]>:$result);
+
+  let assemblyFormat = "$in `,` $filter attr-dict `:` functional-type(operands, results)";
+}
+
 #endif // #ifndef TCF_OPS

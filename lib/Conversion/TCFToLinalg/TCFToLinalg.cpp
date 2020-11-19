@@ -32,6 +32,13 @@ static SmallVector<Value, 6> bypassResultShapes(Operation *op,
         op->getLoc(), ValueRange({lhsRows, rhsCols}));
     return {shape};
   }
+  if (auto conv_2d = dyn_cast<tcf::Conv2dOp>(op)) {
+    auto inRows = builder.create<DimOp>(op->getLoc(), conv_2d.in(), 0);
+    auto filterCols = builder.create<DimOp>(op->getLoc(), conv_2d.filter(), 1);
+    auto shape = builder.create<TensorFromElementsOp>(
+        op->getLoc(), ValueRange({inRows, filterCols}));
+    return {shape};
+  }
 
   // No shape transfer function.
   return {};
@@ -77,6 +84,45 @@ public:
 } // namespace
 
 namespace {
+class ConvertConv2d : public OpRewritePattern<tcf::Conv2dOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(tcf::Conv2dOp op,
+                                PatternRewriter &rewriter) const override {
+    // Create the constraints, and the assuming region.
+    Value inK = rewriter.create<DimOp>(op.getLoc(), op.in(), 1);
+    Value filterK = rewriter.create<DimOp>(op.getLoc(), op.filter(), 0);
+    Value matchingK =
+        rewriter.create<CmpIOp>(op.getLoc(), CmpIPredicate::eq, inK, filterK);
+    Value witness = rewriter.create<shape::CstrRequireOp>(
+        op.getLoc(), matchingK, "mismatching contracting dimension for conv_2d");
+    auto assuming = rewriter.create<shape::AssumingOp>(
+        op.getLoc(), ArrayRef<Type>{op.getType()}, witness);
+
+    // Build the region body.
+    rewriter.createBlock(&assuming.doRegion());
+    // Create the init tensor for the Conv2d.
+    // TODO: Expand supported data types.
+    Value c0 =
+        rewriter.create<ConstantOp>(op.getLoc(), rewriter.getF32FloatAttr(0.0));
+    Value shape = bypassResultShapes(op, rewriter)[0];
+    Value initTensor =
+        rewriter.create<tcp::SplattedOp>(op.getLoc(), op.getType(), c0, shape);
+
+    // Create the Conv2d.
+    auto conv_2d = rewriter.create<linalg::MatmulOp>(
+        op.getLoc(), TypeRange(op.getType()), op.getOperands(), ValueRange(),
+        ValueRange(initTensor));
+    rewriter.create<shape::AssumingYieldOp>(op.getLoc(), conv_2d.getResult(0));
+
+    // Finally, replace with the results of the shape.assuming
+    rewriter.replaceOp(op, assuming.getResults());
+    return success();
+  }
+};
+} // namespace
+
+namespace {
 class ConvertTCFToLinalg : public ConvertTCFToLinalgBase<ConvertTCFToLinalg> {
 public:
   void getDependentDialects(DialectRegistry &registry) const override {
@@ -91,6 +137,7 @@ public:
     MLIRContext *context = &getContext();
     OwningRewritePatternList patterns;
     patterns.insert<ConvertMatmul>(context);
+    patterns.insert<ConvertConv2d>(context);
     return std::move(patterns);
   }
 };
