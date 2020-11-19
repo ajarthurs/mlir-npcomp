@@ -110,7 +110,7 @@ public:
         rewriter.create<tcp::SplattedOp>(op.getLoc(), op.getType(), c0, shape);
 
     // Create the Conv2d.
-    auto conv_2d = rewriter.create<linalg::ConvHWOp>(
+    auto conv_2d = rewriter.create<linalg::ConvNCHWOp>(
         op.getLoc(), TypeRange(op.getType()), op.getOperands(), ValueRange(),
         ValueRange(initTensor));
     rewriter.create<shape::AssumingYieldOp>(op.getLoc(), conv_2d.getResult(0));
