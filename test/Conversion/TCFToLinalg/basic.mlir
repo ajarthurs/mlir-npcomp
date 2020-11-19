@@ -25,8 +25,9 @@ func @tcf_matmul(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xf32>) -> tensor<?x?xf
 }
 
 // CHECK-LABEL:   func @tcf_conv_2d(
-// CHECK-SAME:                     %[[IN:.*]]: tensor<?x?x?x?xf32>,
-// CHECK-SAME:                     %[[FILTER:.*]]: tensor<?x?x?x?xf32>) -> tensor<?x?x?x?xf32> {
+// CHECK-SAME:                     %[[IN:[a-zA-Z0-9]+]]: tensor<?x?x?x?xf32>
+// CHECK-SAME:                     %[[FILTER:[a-zA-Z0-9]+]]: tensor<?x?x?x?xf32>
+// CHECK-SAME:                     %[[BIAS:[a-zA-Z0-9]+]]: tensor<?x?x?x?xf32>) -> tensor<?x?x?x?xf32> {
 // CHECK:           %[[C0F32:.*]] = constant 0.000000e+00 : f32
 // CHECK:           %[[C0:.*]] = constant 0 : index
 // CHECK:           %[[C1:.*]] = constant 1 : index
@@ -40,10 +41,11 @@ func @tcf_matmul(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xf32>) -> tensor<?x?xf
 // CHECK:             %[[SHAPE:.*]] = tensor_from_elements %[[INROWS]], %[[FILTERCOLS]] : tensor<2xindex>
 // CHECK:             %[[INIT_TENSOR:.*]] = tcp.splatted %[[C0F32]], %[[SHAPE]] : (f32, tensor<2xindex>) -> tensor<?x?x?x?xf32>
 // CHECK:             %[[CONV2D:.*]] = linalg.conv_2d_nchw ins(%[[IN]], %[[FILTER]] : tensor<?x?x?x?xf32>, tensor<?x?x?x?xf32>) init(%[[INIT_TENSOR]] : tensor<?x?x?x?xf32>)  -> tensor<?x?x?x?xf32>
-// CHECK:             shape.assuming_yield %[[CONV2D]] : tensor<?x?x?x?xf32>
+// CHECK:             %[[CONV2DBIAS:.*]] = addf %[[CONV2D]], %[[BIAS]] : tensor<?x?x?x?xf32>
+// CHECK:             shape.assuming_yield %[[CONV2DBIAS]] : tensor<?x?x?x?xf32>
 // CHECK:           }
 // CHECK:           return %[[RET:.*]] : tensor<?x?x?x?xf32>
-func @tcf_conv_2d(%arg0: tensor<?x?x?x?xf32>, %arg1: tensor<?x?x?x?xf32>) -> tensor<?x?x?x?xf32> {
-  %0 = tcf.conv_2d %arg0, %arg1 : (tensor<?x?x?x?xf32>, tensor<?x?x?x?xf32>) -> tensor<?x?x?x?xf32>
+func @tcf_conv_2d(%arg0: tensor<?x?x?x?xf32>, %arg1: tensor<?x?x?x?xf32>, %arg2: tensor<?x?x?x?xf32>) -> tensor<?x?x?x?xf32> {
+  %0 = tcf.conv_2d %arg0, %arg1, %arg2 : (tensor<?x?x?x?xf32>, tensor<?x?x?x?xf32>, tensor<?x?x?x?xf32>) -> tensor<?x?x?x?xf32>
   return %0 : tensor<?x?x?x?xf32>
 }

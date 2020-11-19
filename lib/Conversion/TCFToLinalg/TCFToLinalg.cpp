@@ -111,9 +111,11 @@ public:
 
     // Create the Conv2d.
     auto conv_2d = rewriter.create<linalg::ConvNCHWOp>(
-        op.getLoc(), TypeRange(op.getType()), op.getOperands(), ValueRange(),
+        op.getLoc(), TypeRange(op.getType()), ValueRange({op.in(), op.filter()}), ValueRange(),
         ValueRange(initTensor));
-    rewriter.create<shape::AssumingYieldOp>(op.getLoc(), conv_2d.getResult(0));
+    auto conv_2d_bias = rewriter.create<AddFOp>(
+        op.getLoc(), TypeRange(op.getType()), conv_2d.getResult(0), op.bias());
+    rewriter.create<shape::AssumingYieldOp>(op.getLoc(), conv_2d_bias.getResult());
 
     // Finally, replace with the results of the shape.assuming
     rewriter.replaceOp(op, assuming.getResults());
