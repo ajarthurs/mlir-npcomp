@@ -39,7 +39,7 @@ func @tcf_matmul(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xf32>) -> tensor<?x?xf
 // CHECK:             %[[FILTERCOLS:.*]] = dim %[[FILTER]], %[[C1]] : tensor<?x?xf32>
 // CHECK:             %[[SHAPE:.*]] = tensor_from_elements %[[INROWS]], %[[FILTERCOLS]] : tensor<2xindex>
 // CHECK:             %[[INIT_TENSOR:.*]] = tcp.splatted %[[C0F32]], %[[SHAPE]] : (f32, tensor<2xindex>) -> tensor<?x?xf32>
-// CHECK:             %[[CONV2D:.*]] = linalg.matmul ins(%[[IN]], %[[FILTER]] : tensor<?x?xf32>, tensor<?x?xf32>) init(%[[INIT_TENSOR]] : tensor<?x?xf32>)  -> tensor<?x?xf32>
+// CHECK:             %[[CONV2D:.*]] = linalg.conv_2d ins(%[[IN]], %[[FILTER]] : tensor<?x?xf32>, tensor<?x?xf32>) init(%[[INIT_TENSOR]] : tensor<?x?xf32>)  -> tensor<?x?xf32>
 // CHECK:             shape.assuming_yield %[[CONV2D]] : tensor<?x?xf32>
 // CHECK:           }
 // CHECK:           return %[[RET:.*]] : tensor<?x?xf32>
