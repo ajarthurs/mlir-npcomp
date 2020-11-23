@@ -32,11 +32,14 @@ static SmallVector<Value, 6> bypassResultShapes(Operation *op,
         op->getLoc(), ValueRange({lhsRows, rhsCols}));
     return {shape};
   }
+  // TODO: This only supports the NCHW data format. Consider other formats and lower ranks.
   if (auto conv_2d = dyn_cast<tcf::Conv2dOp>(op)) {
-    auto inRows = builder.create<DimOp>(op->getLoc(), conv_2d.in(), 0);
-    auto filterCols = builder.create<DimOp>(op->getLoc(), conv_2d.filter(), 1);
+    auto batch = builder.create<DimOp>(op->getLoc(), conv_2d.in(), 0);
+    auto height = builder.create<DimOp>(op->getLoc(), conv_2d.in(), 2);
+    auto width = builder.create<DimOp>(op->getLoc(), conv_2d.in(), 3);
+    auto filter = builder.create<DimOp>(op->getLoc(), conv_2d.filter(), 0);
     auto shape = builder.create<TensorFromElementsOp>(
-        op->getLoc(), ValueRange({inRows, filterCols}));
+        op->getLoc(), ValueRange({batch, filter, height, width}));
     return {shape};
   }
 
