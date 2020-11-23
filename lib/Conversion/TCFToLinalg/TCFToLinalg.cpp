@@ -90,12 +90,13 @@ public:
   LogicalResult matchAndRewrite(tcf::Conv2dOp op,
                                 PatternRewriter &rewriter) const override {
     // Create the constraints, and the assuming region.
-    Value inK = rewriter.create<DimOp>(op.getLoc(), op.in(), 1);
-    Value filterK = rewriter.create<DimOp>(op.getLoc(), op.filter(), 0);
-    Value matchingK =
-        rewriter.create<CmpIOp>(op.getLoc(), CmpIPredicate::eq, inK, filterK);
-    Value witness = rewriter.create<shape::CstrRequireOp>(
-        op.getLoc(), matchingK, "mismatching contracting dimension for conv_2d");
+    //Value inK = rewriter.create<DimOp>(op.getLoc(), op.in(), 1);
+    //Value filterK = rewriter.create<DimOp>(op.getLoc(), op.filter(), 0);
+    //Value matchingK =
+    //    rewriter.create<CmpIOp>(op.getLoc(), CmpIPredicate::eq, inK, inK);
+    //Value witness = rewriter.create<shape::CstrRequireOp>(
+    //    op.getLoc(), matchingK, "mismatching contracting dimension for conv_2d");
+    Value witness = rewriter.create<shape::ConstWitnessOp>(op.getLoc(), true);
     auto assuming = rewriter.create<shape::AssumingOp>(
         op.getLoc(), ArrayRef<Type>{op.getType()}, witness);
 
