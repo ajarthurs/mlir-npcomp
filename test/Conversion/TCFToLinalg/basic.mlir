@@ -28,18 +28,18 @@ func @tcf_matmul(%arg0: tensor<?x?xf32>, %arg1: tensor<?x?xf32>) -> tensor<?x?xf
 // CHECK-SAME:                     %[[IN:[a-zA-Z0-9]+]]: tensor<?x?x?x?xf32>
 // CHECK-SAME:                     %[[FILTER:[a-zA-Z0-9]+]]: tensor<?x?x?x?xf32>
 // CHECK-SAME:                     %[[BIAS:[a-zA-Z0-9]+]]: tensor<?x?x?x?xf32>) -> tensor<?x?x?x?xf32> {
+// CHECK:           %[[WITNESS:.*]] = shape.const_witness true
 // CHECK:           %[[C0F32:.*]] = constant 0.000000e+00 : f32
+// CHECK:           %[[C2:.*]] = constant 2 : index
+// CHECK:           %[[C3:.*]] = constant 3 : index
 // CHECK:           %[[C0:.*]] = constant 0 : index
-// CHECK:           %[[C1:.*]] = constant 1 : index
-// CHECK:           %[[INK:.*]] = dim %[[IN]], %[[C1]] : tensor<?x?x?x?xf32>
-// CHECK:           %[[FILTERK:.*]] = dim %[[FILTER]], %[[C0]] : tensor<?x?x?x?xf32>
-// CHECK:           %[[KEQUAL:.*]] = cmpi "eq", %[[INK]], %[[FILTERK]] : index
-// CHECK:           %[[WINESS:.*]] = shape.cstr_require %[[KEQUAL]], "mismatching contracting dimension for conv_2d"
-// CHECK:           %[[RET:.*]] = shape.assuming %[[WINESS]] -> (tensor<?x?x?x?xf32>) {
-// CHECK:             %[[INROWS:.*]] = dim %[[IN]], %[[C0]] : tensor<?x?x?x?xf32>
-// CHECK:             %[[FILTERCOLS:.*]] = dim %[[FILTER]], %[[C1]] : tensor<?x?x?x?xf32>
-// CHECK:             %[[SHAPE:.*]] = tensor_from_elements %[[INROWS]], %[[FILTERCOLS]] : tensor<2xindex>
-// CHECK:             %[[INIT_TENSOR:.*]] = tcp.splatted %[[C0F32]], %[[SHAPE]] : (f32, tensor<2xindex>) -> tensor<?x?x?x?xf32>
+// CHECK:           %[[RET:.*]] = shape.assuming %[[WITNESS]] -> (tensor<?x?x?x?xf32>) {
+// CHECK:             %[[BATCHK:.*]] = dim %[[IN]], %[[C0]] : tensor<?x?x?x?xf32>
+// CHECK:             %[[HEIGHT:.*]] = dim %[[IN]], %[[C2]] : tensor<?x?x?x?xf32>
+// CHECK:             %[[WIDTH:.*]] = dim %[[IN]], %[[C3]] : tensor<?x?x?x?xf32>
+// CHECK:             %[[FILTERK:.*]] = dim %[[FILTER]], %[[C0]] : tensor<?x?x?x?xf32>
+// CHECK:             %[[SHAPE:.*]] = tensor_from_elements %[[BATCHK]], %[[FILTERK]], %[[HEIGHT]], %[[WIDTH]] : tensor<4xindex>
+// CHECK:             %[[INIT_TENSOR:.*]] = tcp.splatted %[[C0F32]], %[[SHAPE]] : (f32, tensor<4xindex>) -> tensor<?x?x?x?xf32>
 // CHECK:             %[[CONV2D:.*]] = linalg.conv_2d_nchw ins(%[[IN]], %[[FILTER]] : tensor<?x?x?x?xf32>, tensor<?x?x?x?xf32>) init(%[[INIT_TENSOR]] : tensor<?x?x?x?xf32>)  -> tensor<?x?x?x?xf32>
 // CHECK:             %[[CONV2DBIAS:.*]] = addf %[[CONV2D]], %[[BIAS]] : tensor<?x?x?x?xf32>
 // CHECK:             shape.assuming_yield %[[CONV2DBIAS]] : tensor<?x?x?x?xf32>
