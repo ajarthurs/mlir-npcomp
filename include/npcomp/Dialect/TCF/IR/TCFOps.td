@@ -101,9 +101,9 @@ def TCF_Conv2dOp : TCF_Op<"conv_2d"> {
     Performs 2-D convolution plus bias addition.
 
     The tensors have dimensions:
-    - in: [N, C, H, W]
+    - in:     [N, C, H, W]
     - filter: [F, C, KH, KW]
-    - bias: [N, F, H, W]
+    - bias:   [N, F, H, W]
     - result: [N, F, H, W]
 
     If the `K` dimension mismatches between the operands, this op aborts the

@@ -92,6 +92,7 @@ public:
   using OpRewritePattern::OpRewritePattern;
   LogicalResult matchAndRewrite(tcf::Conv2dOp op,
                                 PatternRewriter &rewriter) const override {
+    // TODO: Create the constraints for conv_2d.
     // Create the constraints, and the assuming region.
     //Value inK = rewriter.create<DimOp>(op.getLoc(), op.in(), 1);
     //Value filterK = rewriter.create<DimOp>(op.getLoc(), op.filter(), 0);
