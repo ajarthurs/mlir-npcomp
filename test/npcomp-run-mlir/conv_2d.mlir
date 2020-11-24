@@ -23,8 +23,8 @@
 // RUN:   | FileCheck %s --check-prefix=ZEROS
 
 // Basic correctness checks:
-// [1.2 3.4] * [5.6] + [4.0 3.0] = [8.07jjjjjjj
-// [5.6 7.8]           [2.0 1.0]
+// [1.2 3.4] * [5.6] + [4.0 3.0] = [8.07999992   1.456000e+01]
+// [5.6 7.8]           [2.0 1.0]   [2.104000e+01 2.752000e+01]
 
 // CHECK: output #0: dense<9.680000e+00> : tensor<1x1x1x1xf32>
 
