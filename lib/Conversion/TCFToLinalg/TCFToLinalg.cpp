@@ -33,11 +33,11 @@ static SmallVector<Value, 6> bypassResultShapes(Operation *op,
     return {shape};
   }
   // TODO: This only supports the NCHW data format. Consider other formats and lower ranks.
-  if (auto conv_2d = dyn_cast<tcf::Conv2dOp>(op)) {
-    auto batch = builder.create<DimOp>(op->getLoc(), conv_2d.in(), 0);
-    auto height = builder.create<DimOp>(op->getLoc(), conv_2d.in(), 2);
-    auto width = builder.create<DimOp>(op->getLoc(), conv_2d.in(), 3);
-    auto filter = builder.create<DimOp>(op->getLoc(), conv_2d.filter(), 0);
+  if (auto conv_2d_nchw_bias = dyn_cast<tcf::ConvNCHWBiasOp>(op)) {
+    auto batch = builder.create<DimOp>(op->getLoc(), conv_2d_nchw_bias.in(), 0);
+    auto height = builder.create<DimOp>(op->getLoc(), conv_2d_nchw_bias.in(), 2);
+    auto width = builder.create<DimOp>(op->getLoc(), conv_2d_nchw_bias.in(), 3);
+    auto filter = builder.create<DimOp>(op->getLoc(), conv_2d_nchw_bias.filter(), 0);
     auto shape = builder.create<TensorFromElementsOp>(
         op->getLoc(), ValueRange({batch, filter, height, width}));
     return {shape};
@@ -87,26 +87,26 @@ public:
 } // namespace
 
 namespace {
-class ConvertConv2d : public OpRewritePattern<tcf::Conv2dOp> {
+class ConvertConvNCHWBias : public OpRewritePattern<tcf::ConvNCHWBiasOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
-  LogicalResult matchAndRewrite(tcf::Conv2dOp op,
+  LogicalResult matchAndRewrite(tcf::ConvNCHWBiasOp op,
                                 PatternRewriter &rewriter) const override {
-    // TODO: Create the constraints for conv_2d.
+    // TODO: Create the constraints for conv_2d_nchw_bias.
     // Create the constraints, and the assuming region.
     //Value inK = rewriter.create<DimOp>(op.getLoc(), op.in(), 1);
     //Value filterK = rewriter.create<DimOp>(op.getLoc(), op.filter(), 0);
     //Value matchingK =
     //    rewriter.create<CmpIOp>(op.getLoc(), CmpIPredicate::eq, inK, inK);
     //Value witness = rewriter.create<shape::CstrRequireOp>(
-    //    op.getLoc(), matchingK, "mismatching contracting dimension for conv_2d");
+    //    op.getLoc(), matchingK, "mismatching contracting dimension for conv_2d_nchw_bias");
     Value witness = rewriter.create<shape::ConstWitnessOp>(op.getLoc(), true);
     auto assuming = rewriter.create<shape::AssumingOp>(
         op.getLoc(), ArrayRef<Type>{op.getType()}, witness);
 
     // Build the region body.
     rewriter.createBlock(&assuming.doRegion());
-    // Create the init tensor for the Conv2d.
+    // Create the init tensor for the ConvNCHWBias.
     // TODO: Expand supported data types.
     Value c0 =
         rewriter.create<ConstantOp>(op.getLoc(), rewriter.getF32FloatAttr(0.0));
@@ -114,13 +114,13 @@ public:
     Value initTensor =
         rewriter.create<tcp::SplattedOp>(op.getLoc(), op.getType(), c0, shape);
 
-    // Create the Conv2d.
-    auto conv_2d = rewriter.create<linalg::ConvNCHWOp>(
+    // Create the ConvNCHWBias.
+    auto conv_2d_nchw = rewriter.create<linalg::ConvNCHWOp>(
         op.getLoc(), TypeRange(op.getType()), ValueRange({op.in(), op.filter()}), ValueRange(),
         ValueRange(initTensor));
-    auto conv_2d_bias = rewriter.create<AddFOp>(
-        op.getLoc(), TypeRange(op.getType()), conv_2d.getResult(0), op.bias());
-    rewriter.create<shape::AssumingYieldOp>(op.getLoc(), conv_2d_bias.getResult());
+    auto conv_2d_nchw_bias = rewriter.create<AddFOp>(
+        op.getLoc(), TypeRange(op.getType()), conv_2d_nchw.getResult(0), op.bias());
+    rewriter.create<shape::AssumingYieldOp>(op.getLoc(), conv_2d_nchw_bias.getResult());
 
     // Finally, replace with the results of the shape.assuming
     rewriter.replaceOp(op, assuming.getResults());
@@ -144,7 +144,7 @@ public:
     MLIRContext *context = &getContext();
     OwningRewritePatternList patterns;
     patterns.insert<ConvertMatmul>(context);
-    patterns.insert<ConvertConv2d>(context);
+    patterns.insert<ConvertConvNCHWBias>(context);
     return std::move(patterns);
   }
 };

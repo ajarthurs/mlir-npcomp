@@ -95,7 +95,7 @@ def TCF_MatmulOp : TCF_Op<"matmul"> {
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` functional-type(operands, results)";
 }
 
-def TCF_Conv2dOp : TCF_Op<"conv_2d"> {
+def TCF_ConvNCHWBiasOp : TCF_Op<"conv_2d_nchw_bias"> {
   let summary = "2-D convolution with bias";
   let description = [{
     Performs 2-D convolution plus bias addition.
