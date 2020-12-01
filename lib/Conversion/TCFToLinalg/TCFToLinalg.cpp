@@ -33,11 +33,11 @@ static SmallVector<Value, 6> bypassResultShapes(Operation *op,
     return {shape};
   }
   // TODO: This only supports the NCHW data format. Consider other formats and lower ranks.
-  if (auto conv_2d_nchw_bias = dyn_cast<tcf::ConvNCHWBiasOp>(op)) {
-    auto batch = builder.create<DimOp>(op->getLoc(), conv_2d_nchw_bias.in(), 0);
-    auto height = builder.create<DimOp>(op->getLoc(), conv_2d_nchw_bias.in(), 2);
-    auto width = builder.create<DimOp>(op->getLoc(), conv_2d_nchw_bias.in(), 3);
-    auto filter = builder.create<DimOp>(op->getLoc(), conv_2d_nchw_bias.filter(), 0);
+  if (auto conv2dNCHWBias = dyn_cast<tcf::ConvNCHWBiasOp>(op)) {
+    auto batch = builder.create<DimOp>(op->getLoc(), conv2dNCHWBias.in(), 0);
+    auto height = builder.create<DimOp>(op->getLoc(), conv2dNCHWBias.in(), 2);
+    auto width = builder.create<DimOp>(op->getLoc(), conv2dNCHWBias.in(), 3);
+    auto filter = builder.create<DimOp>(op->getLoc(), conv2dNCHWBias.filter(), 0);
     auto shape = builder.create<TensorFromElementsOp>(
         op->getLoc(), ValueRange({batch, filter, height, width}));
     return {shape};
@@ -115,12 +115,12 @@ public:
         rewriter.create<tcp::SplattedOp>(op.getLoc(), op.getType(), c0, shape);
 
     // Create the ConvNCHWBias.
-    auto conv_2d_nchw = rewriter.create<linalg::ConvNCHWOp>(
+    auto conv2dNCHW = rewriter.create<linalg::ConvNCHWOp>(
         op.getLoc(), TypeRange(op.getType()), ValueRange({op.in(), op.filter()}), ValueRange(),
         ValueRange(initTensor));
-    auto conv_2d_nchw_bias = rewriter.create<AddFOp>(
-        op.getLoc(), TypeRange(op.getType()), conv_2d_nchw.getResult(0), op.bias());
-    rewriter.create<shape::AssumingYieldOp>(op.getLoc(), conv_2d_nchw_bias.getResult());
+    auto conv2dNCHWBias = rewriter.create<AddFOp>(
+        op.getLoc(), TypeRange(op.getType()), conv2dNCHW.getResult(0), op.bias());
+    rewriter.create<shape::AssumingYieldOp>(op.getLoc(), conv2dNCHWBias.getResult());
 
     // Finally, replace with the results of the shape.assuming
     rewriter.replaceOp(op, assuming.getResults());
