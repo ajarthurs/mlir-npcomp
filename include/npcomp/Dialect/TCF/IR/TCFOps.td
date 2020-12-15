@@ -102,18 +102,18 @@ def TCF_ConvNCHWOp : TCF_Op<"conv_2d_nchw"> {
 
     The tensors have dimensions:
     - in:     [N, Cin, H, W]
-    - filter: [Cout, Cin, KH, KW]
+    - kernel: [Cout, Cin, KH, KW]
     - result: [N, Cout, Hout, Wout]
 
     The tensors must meet the following conditions; otherwise, this op aborts the program.
     - H is greater than or equal to KH
     - W is greater than or equal to KW
-    - Cin matches between in and filter
+    - Cin matches between in and kernel
   }];
-  let arguments = (ins 4DTensorOf<[F32]>:$in, 4DTensorOf<[F32]>:$filter);
+  let arguments = (ins 4DTensorOf<[F32]>:$in, 4DTensorOf<[F32]>:$kernel);
   let results = (outs 4DTensorOf<[F32]>:$result);
 
-  let assemblyFormat = "$in `,` $filter attr-dict `:` functional-type(operands, results)";
+  let assemblyFormat = "$in `,` $kernel attr-dict `:` functional-type(operands, results)";
 }
 
 #endif // #ifndef TCF_OPS

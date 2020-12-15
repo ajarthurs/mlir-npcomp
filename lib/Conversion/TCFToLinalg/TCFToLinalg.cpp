@@ -51,30 +51,30 @@ static SmallVector<Value, 6> bypassResultShapes(Operation *op,
     auto batch = builder.create<DimOp>(op->getLoc(), conv2dNCHW.in(), 0);
     auto height = builder.create<DimOp>(op->getLoc(), conv2dNCHW.in(), 2);
     auto width = builder.create<DimOp>(op->getLoc(), conv2dNCHW.in(), 3);
-    auto filterOutChannels = builder.create<DimOp>(op->getLoc(), conv2dNCHW.filter(), 0);
-    auto filterHeight = builder.create<DimOp>(op->getLoc(), conv2dNCHW.filter(), 2);
-    auto filterWidth = builder.create<DimOp>(op->getLoc(), conv2dNCHW.filter(), 3);
+    auto kernelOutChannels = builder.create<DimOp>(op->getLoc(), conv2dNCHW.kernel(), 0);
+    auto kernelHeight = builder.create<DimOp>(op->getLoc(), conv2dNCHW.kernel(), 2);
+    auto kernelWidth = builder.create<DimOp>(op->getLoc(), conv2dNCHW.kernel(), 3);
     // Output height
     auto twicePaddingHeight = builder.create<MulIOp>(op->getLoc(), paddingHeight, cI2);
     auto heightPlusTwicePadding = builder.create<SubIOp>(op->getLoc(), height, twicePaddingHeight);
-    auto filterHeightMinusOne = builder.create<SubIOp>(op->getLoc(), filterHeight, cI1);
-    auto dilationFilterHeight = builder.create<MulIOp>(op->getLoc(), dilationHeight, filterHeightMinusOne);
-    auto outHeightUnstridedPlusOne = builder.create<SubIOp>(op->getLoc(), heightPlusTwicePadding, dilationFilterHeight);
+    auto kernelHeightMinusOne = builder.create<SubIOp>(op->getLoc(), kernelHeight, cI1);
+    auto dilationKernelHeight = builder.create<MulIOp>(op->getLoc(), dilationHeight, kernelHeightMinusOne);
+    auto outHeightUnstridedPlusOne = builder.create<SubIOp>(op->getLoc(), heightPlusTwicePadding, dilationKernelHeight);
     auto outHeightUnstrided = builder.create<SubIOp>(op->getLoc(), outHeightUnstridedPlusOne, cI1);
     auto outHeightMinusOne = builder.create<UnsignedDivIOp>(op->getLoc(), outHeightUnstrided, strideHeight);
     auto outHeight = builder.create<AddIOp>(op->getLoc(), outHeightMinusOne, cI1);
     // Output width
     auto twicePaddingWidth = builder.create<MulIOp>(op->getLoc(), paddingWidth, cI2);
     auto widthPlusTwicePadding = builder.create<SubIOp>(op->getLoc(), width, twicePaddingWidth);
-    auto filterWidthMinusOne = builder.create<SubIOp>(op->getLoc(), filterWidth, cI1);
-    auto dilationFilterWidth = builder.create<MulIOp>(op->getLoc(), dilationWidth, filterWidthMinusOne);
-    auto outWidthUnstridedPlusOne = builder.create<SubIOp>(op->getLoc(), widthPlusTwicePadding, dilationFilterWidth);
+    auto kernelWidthMinusOne = builder.create<SubIOp>(op->getLoc(), kernelWidth, cI1);
+    auto dilationKernelWidth = builder.create<MulIOp>(op->getLoc(), dilationWidth, kernelWidthMinusOne);
+    auto outWidthUnstridedPlusOne = builder.create<SubIOp>(op->getLoc(), widthPlusTwicePadding, dilationKernelWidth);
     auto outWidthUnstrided = builder.create<SubIOp>(op->getLoc(), outWidthUnstridedPlusOne, cI1);
     auto outWidthMinusOne = builder.create<UnsignedDivIOp>(op->getLoc(), outWidthUnstrided, strideWidth);
     auto outWidth = builder.create<AddIOp>(op->getLoc(), outWidthMinusOne, cI1);
     // Output shape
     auto shape = builder.create<TensorFromElementsOp>(
-        op->getLoc(), ValueRange({batch, filterOutChannels, outHeight, outWidth}));
+        op->getLoc(), ValueRange({batch, kernelOutChannels, outHeight, outWidth}));
     return {shape};
   }
 
@@ -131,23 +131,23 @@ public:
     Value inputCin  = rewriter.create<DimOp>(op.getLoc(), op.in(), 1);
     Value inputH   = rewriter.create<DimOp>(op.getLoc(), op.in(), 2);
     Value inputW   = rewriter.create<DimOp>(op.getLoc(), op.in(), 3);
-    Value filterCin = rewriter.create<DimOp>(op.getLoc(), op.filter(), 1);
-    Value filterKH = rewriter.create<DimOp>(op.getLoc(), op.filter(), 2);
-    Value filterKW = rewriter.create<DimOp>(op.getLoc(), op.filter(), 3);
+    Value kernelCin = rewriter.create<DimOp>(op.getLoc(), op.kernel(), 1);
+    Value kernelKH = rewriter.create<DimOp>(op.getLoc(), op.kernel(), 2);
+    Value kernelKW = rewriter.create<DimOp>(op.getLoc(), op.kernel(), 3);
     Value matchingCin =
-        rewriter.create<CmpIOp>(op.getLoc(), CmpIPredicate::eq, inputCin, filterCin);
-    Value validFilterH =
-        rewriter.create<CmpIOp>(op.getLoc(), CmpIPredicate::uge, inputH, filterKH);
-    Value validFilterW =
-        rewriter.create<CmpIOp>(op.getLoc(), CmpIPredicate::uge, inputW, filterKW);
+        rewriter.create<CmpIOp>(op.getLoc(), CmpIPredicate::eq, inputCin, kernelCin);
+    Value validKernelH =
+        rewriter.create<CmpIOp>(op.getLoc(), CmpIPredicate::uge, inputH, kernelKH);
+    Value validKernelW =
+        rewriter.create<CmpIOp>(op.getLoc(), CmpIPredicate::uge, inputW, kernelKW);
     Value witnessCin = rewriter.create<shape::CstrRequireOp>(
-        op.getLoc(), matchingCin, "input and filter in-channels must be equal");
-    Value witnessFilterH = rewriter.create<shape::CstrRequireOp>(
-        op.getLoc(), validFilterH, "input height must be greater than or equal to filter KH-dimension");
-    Value witnessFilterW = rewriter.create<shape::CstrRequireOp>(
-        op.getLoc(), validFilterW, "input width must be greater than or equal to filter KW-dimension");
+        op.getLoc(), matchingCin, "input and kernel in-channels must be equal");
+    Value witnessKernelH = rewriter.create<shape::CstrRequireOp>(
+        op.getLoc(), validKernelH, "input height must be greater than or equal to kernel KH-dimension");
+    Value witnessKernelW = rewriter.create<shape::CstrRequireOp>(
+        op.getLoc(), validKernelW, "input width must be greater than or equal to kernel KW-dimension");
     Value assumingAll = rewriter.create<shape::AssumingAllOp>(
-        op.getLoc(), witnessCin.getType(), ValueRange({witnessCin, witnessFilterH, witnessFilterW}));
+        op.getLoc(), witnessCin.getType(), ValueRange({witnessCin, witnessKernelH, witnessKernelW}));
     auto assuming = rewriter.create<shape::AssumingOp>(
         op.getLoc(), ArrayRef<Type>{op.getType()}, assumingAll);
 
@@ -163,7 +163,7 @@ public:
 
     // Create the ConvNCHW.
     auto conv2dNCHW = rewriter.create<linalg::ConvNCHWOp>(
-        op.getLoc(), TypeRange(op.getType()), ValueRange({op.in(), op.filter()}), ValueRange(),
+        op.getLoc(), TypeRange(op.getType()), ValueRange({op.in(), op.kernel()}), ValueRange(),
         ValueRange(initTensor));
     rewriter.create<shape::AssumingYieldOp>(op.getLoc(), conv2dNCHW.getResults());
 
