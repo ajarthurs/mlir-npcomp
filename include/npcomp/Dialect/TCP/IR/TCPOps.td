@@ -54,4 +54,20 @@ def TCP_SplattedOp : TCP_Op<"splatted"> {
   let assemblyFormat = "$splatVal `,` $shape attr-dict `:` functional-type(operands, results)";
 }
 
+def TCP_PadOp : TCP_Op<"pad"> {
+  let summary = "Pads a tensor with zeros";
+  let description = [{
+    Pads a tensor with zeros along the borders of the height and width dimensions. This op is inspired by the padding feature in PyTorch's Conv2d layer (https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html).
+
+    The tensors have dimensions:
+    - in:     [N, Cin, H, W]
+    - expand: [4] (Ptop, Pbottom, Pleft, Pright)
+    - result: [N, Cin, Hout, Wout]
+  }];
+  let arguments = (ins 4DTensorOf<[F32]>:$in, 1DTensorOf<[I32,I32,I32,I32]>:$expand);
+  let results = (outs 4DTensorOf<[F32]>:$result);
+
+  let assemblyFormat = "$in `,` $expand attr-dict `:` functional-type(operands, results)";
+}
+
 #endif // TCP_OPS
