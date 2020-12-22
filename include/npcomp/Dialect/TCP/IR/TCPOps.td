@@ -64,7 +64,7 @@ def TCP_PadOp : TCP_Op<"pad"> {
     - expand: [4] (Ptop, Pbottom, Pleft, Pright)
     - result: [N, Cin, Hout, Wout]
   }];
-  let arguments = (ins 4DTensorOf<[F32]>:$in, 1DTensorOf<[I32,I32,I32,I32]>:$expand);
+  let arguments = (ins 4DTensorOf<[F32]>:$in, Shape_ExtentTensorType:$expand);
   let results = (outs 4DTensorOf<[F32]>:$result);
 
   let assemblyFormat = "$in `,` $expand attr-dict `:` functional-type(operands, results)";
