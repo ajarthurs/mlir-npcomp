@@ -15,8 +15,8 @@ func @splatted(%arg0: f32, %arg1: tensor<?xindex>) -> tensor<?x?xf32> {
 }
 
 // CHECK-LABEL: @pad
-func @pad(%arg0: tensor<?x?x?x?xf32>, %arg1: tensor<?xindex>) -> tensor<?x?x?x?xf32> {
+func @pad(%arg0: tensor<?x?x?x?xf32>, %arg1: tensor<?xindex>, %arg2: f32) -> tensor<?x?x?x?xf32> {
   // CHECK: tcp.pad
-  %0 = tcp.pad %arg0, %arg1 : (tensor<?x?x?x?xf32>, tensor<?xindex>) -> tensor<?x?x?x?xf32>
+  %0 = tcp.pad %arg0, %arg1, %arg2 : (tensor<?x?x?x?xf32>, tensor<?xindex>, f32) -> tensor<?x?x?x?xf32>
   return %0 : tensor<?x?x?x?xf32>
 }

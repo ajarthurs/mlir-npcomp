@@ -62,12 +62,13 @@ def TCP_PadOp : TCP_Op<"pad"> {
     The tensors have dimensions:
     - in:     [N, Cin, H, W]
     - expand: [4] (Ptop, Pbottom, Pleft, Pright)
+    - fill:   scalar
     - result: [N, Cin, Hout, Wout]
   }];
-  let arguments = (ins 4DTensorOf<[F32]>:$in, Shape_ExtentTensorType:$expand);
+  let arguments = (ins 4DTensorOf<[F32]>:$in, Shape_ExtentTensorType:$expand, F32:$fill);
   let results = (outs 4DTensorOf<[F32]>:$result);
 
-  let assemblyFormat = "$in `,` $expand attr-dict `:` functional-type(operands, results)";
+  let assemblyFormat = "$in `,` $expand `,` $fill attr-dict `:` functional-type(operands, results)";
 }
 
 #endif // TCP_OPS
