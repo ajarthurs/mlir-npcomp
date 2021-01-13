@@ -38,25 +38,19 @@ static SmallVector<Value, 6> bypassResultShapes(Operation &op) {
   }
 
   if (auto pad = dyn_cast<tcp::PadOp>(op)) {
-    auto cI0 = builder.create<ConstantOp>(op.getLoc(), builder.getIntegerAttr(builder.getIndexType(), 0));
-    auto cI1 = builder.create<ConstantOp>(op.getLoc(), builder.getIntegerAttr(builder.getIndexType(), 1));
-    auto cI2 = builder.create<ConstantOp>(op.getLoc(), builder.getIntegerAttr(builder.getIndexType(), 2));
-    auto cI3 = builder.create<ConstantOp>(op.getLoc(), builder.getIntegerAttr(builder.getIndexType(), 3));
-    auto inputN       = builder.create<DimOp>(op.getLoc(), pad.in(), 0);
-    auto inputCin     = builder.create<DimOp>(op.getLoc(), pad.in(), 1);
-    auto inputH       = builder.create<DimOp>(op.getLoc(), pad.in(), 2);
-    auto inputW       = builder.create<DimOp>(op.getLoc(), pad.in(), 3);
-    auto expandTop    = builder.create<tensor::ExtractOp>(op.getLoc(), pad.expand(), ValueRange({cI0}));
-    auto expandBottom = builder.create<tensor::ExtractOp>(op.getLoc(), pad.expand(), ValueRange({cI1}));
-    auto expandLeft   = builder.create<tensor::ExtractOp>(op.getLoc(), pad.expand(), ValueRange({cI2}));
-    auto expandRight  = builder.create<tensor::ExtractOp>(op.getLoc(), pad.expand(), ValueRange({cI3}));
-    auto expandHeight = builder.create<AddIOp>(op.getLoc(), expandTop, expandBottom);
-    auto expandWidth  = builder.create<AddIOp>(op.getLoc(), expandLeft, expandRight);
-    auto outHeight    = builder.create<AddIOp>(op.getLoc(), inputH, expandHeight);
-    auto outWidth     = builder.create<AddIOp>(op.getLoc(), inputW, expandWidth);
-    auto shape        = builder.create<TensorFromElementsOp>(
-        op.getLoc(), ValueRange({inputN, inputCin, outHeight, outWidth}));
-    return {shape};
+    SmallVector<Value, 6> outDims;
+    auto inputType = pad.operand().getType().cast<RankedTensorType>();
+    for (int i = 0, e = inputType.getRank(); i < e; i++) {
+      Value dimIndex = builder.create<ConstantIndexOp>(op.getLoc(), i);
+      Value lowerExpansion = builder.create<tensor::ExtractOp>(op.getLoc(), pad.lowerExpansion(), ValueRange({dimIndex}));
+      Value upperExpansion = builder.create<tensor::ExtractOp>(op.getLoc(), pad.upperExpansion(), ValueRange({dimIndex}));
+      Value operandDim     = builder.create<DimOp>(op.getLoc(), pad.operand(), i);
+      Value totalExpansion = builder.create<AddIOp>(op.getLoc(), lowerExpansion, upperExpansion);
+      Value outDim         = builder.create<AddIOp>(op.getLoc(), totalExpansion, operandDim);
+      outDims.push_back(outDim);
+    }
+    Value outDimTensor = builder.create<TensorFromElementsOp>(op.getLoc(), ValueRange(outDims));
+    return {outDimTensor};
   }
 
   // No shape transfer function.
@@ -191,17 +185,20 @@ public:
     if (failed(resultsOrFailure))
       return failure();
     auto results = *resultsOrFailure;
-    auto cI0 = rewriter.create<ConstantOp>(op.getLoc(), rewriter.getIntegerAttr(rewriter.getIndexType(), 0));
-    auto cI1 = rewriter.create<ConstantOp>(op.getLoc(), rewriter.getIntegerAttr(rewriter.getIndexType(), 1));
-    auto cI2 = rewriter.create<ConstantOp>(op.getLoc(), rewriter.getIntegerAttr(rewriter.getIndexType(), 2));
-    auto inputN       = rewriter.create<DimOp>(op.getLoc(), op.in(), 0);
-    auto inputCin     = rewriter.create<DimOp>(op.getLoc(), op.in(), 1);
-    auto inputH       = rewriter.create<DimOp>(op.getLoc(), op.in(), 2);
-    auto inputW       = rewriter.create<DimOp>(op.getLoc(), op.in(), 3);
-    auto expandTop    = rewriter.create<tensor::ExtractOp>(op.getLoc(), op.expand(), ValueRange({cI0}));
-    auto expandLeft   = rewriter.create<tensor::ExtractOp>(op.getLoc(), op.expand(), ValueRange({cI2}));
-    rewriter.create<linalg::FillOp>(op.getLoc(), results[0], op.fill());
-    auto unpadded = rewriter.create<SubViewOp>(op.getLoc(), results[0], /*offsets=*/ValueRange({cI0, cI0, expandTop, expandLeft}), /*sizes*/ValueRange({inputN, inputCin, inputH, inputW}), /*strides=*/ValueRange({cI1, cI1, cI1, cI1}));
+    auto c1 = rewriter.create<ConstantOp>(op.getLoc(), rewriter.getIntegerAttr(rewriter.getIndexType(), 1));
+    SmallVector<Value, 6> offsets, sizes, strides;
+    auto resultType = op.getType().cast<RankedTensorType>();
+    for (int i = 0, e = resultType.getRank(); i < e; i++) {
+      Value dimIndex   = rewriter.create<ConstantIndexOp>(op.getLoc(), i);
+      Value offset     = rewriter.create<tensor::ExtractOp>(op.getLoc(), op.lowerExpansion(), ValueRange({dimIndex}));
+      Value size       = rewriter.create<DimOp>(op.getLoc(), op.operand(), i);
+      Value stride     = c1;
+      offsets.push_back(offset);
+      sizes.push_back(size);
+      strides.push_back(stride);
+    }
+    rewriter.create<linalg::FillOp>(op.getLoc(), results[0], op.fillVal());
+    auto unpadded = rewriter.create<SubViewOp>(op.getLoc(), results[0], ValueRange(offsets), ValueRange(sizes), ValueRange(strides));
     Value inputMemref = operands[0];
     rewriter.create<linalg::CopyOp>(op.getLoc(), inputMemref, unpadded);
     rewriter.replaceOp(op, results);

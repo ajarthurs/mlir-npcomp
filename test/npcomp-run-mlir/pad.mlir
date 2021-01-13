@@ -10,13 +10,14 @@
 // CHECK: output #0: dense<0.000000e+00> : tensor<1x1x4x5xf32>
 func @pad() -> tensor<?x?x?x?xf32> {
   %cst = constant 3.000000e+00 : f32
-  %fill = constant 1.000000e+00 : f32
+  %fill = constant -1.000000e+00 : f32
   %s = shape.const_shape [1, 1, 2, 3] : tensor<4xindex>
-  %e = shape.const_shape [1, 1, 1, 1] : tensor<4xindex>
+  %el = shape.const_shape [0, 0, 2, 1] : tensor<4xindex>
+  %eu = shape.const_shape [0, 0, 1, 2] : tensor<4xindex>
   %c0 = constant 0 : index
   %c1 = constant 1 : index
   %c2 = constant 2 : index
   %8 = tcp.splatted %cst, %s : (f32, tensor<4xindex>) -> tensor<?x?x?x?xf32>
-  %9 = tcp.pad %8, %e, %fill : (tensor<?x?x?x?xf32>, tensor<4xindex>, f32) -> tensor<?x?x?x?xf32>
+  %9 = tcp.pad %8, %el, %eu, %fill : (tensor<?x?x?x?xf32>, tensor<4xindex>, tensor<4xindex>, f32) -> tensor<?x?x?x?xf32>
   return %9 : tensor<?x?x?x?xf32>
 }
